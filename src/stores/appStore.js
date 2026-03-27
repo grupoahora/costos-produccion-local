@@ -1,15 +1,7 @@
 import { defineStore } from 'pinia'
+import { createBaseDB, readDB, writeDB } from '../services/storageService'
 
-const STORAGE_KEY = 'app_db'
-
-const emptyDb = () => ({
-  productos: [],
-  producciones: [],
-  materias_primas: [],
-  produccion_materia_prima: [],
-  gastos: [],
-  ventas_diarias: [],
-})
+const emptyDb = createBaseDB
 
 const toNumber = (value) => {
   const parsed = Number(value)
@@ -37,28 +29,6 @@ const normalizeDate = (value) => {
   return parsed.toISOString().slice(0, 10)
 }
 
-const isBrowser = () => typeof window !== 'undefined' && !!window.localStorage
-
-const withSafeDbShape = (rawDb) => {
-  const base = emptyDb()
-  if (!rawDb || typeof rawDb !== 'object') return base
-
-  return {
-    productos: Array.isArray(rawDb.productos) ? rawDb.productos : base.productos,
-    producciones: Array.isArray(rawDb.producciones) ? rawDb.producciones : base.producciones,
-    materias_primas: Array.isArray(rawDb.materias_primas)
-      ? rawDb.materias_primas
-      : base.materias_primas,
-    produccion_materia_prima: Array.isArray(rawDb.produccion_materia_prima)
-      ? rawDb.produccion_materia_prima
-      : base.produccion_materia_prima,
-    gastos: Array.isArray(rawDb.gastos) ? rawDb.gastos : base.gastos,
-    ventas_diarias: Array.isArray(rawDb.ventas_diarias)
-      ? rawDb.ventas_diarias
-      : base.ventas_diarias,
-  }
-}
-
 export const useAppStore = defineStore('appStore', {
   state: () => ({
     app_db: emptyDb(),
@@ -66,36 +36,17 @@ export const useAppStore = defineStore('appStore', {
 
   actions: {
     init() {
-      const loaded = this.load()
-      if (!loaded) {
-        this.app_db = emptyDb()
-        this.save()
-      }
+      this.load()
+      this.save()
     },
 
     load() {
-      if (!isBrowser()) {
-        this.app_db = emptyDb()
-        return false
-      }
-
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        if (!raw) return false
-
-        const parsed = JSON.parse(raw)
-        this.app_db = withSafeDbShape(parsed)
-
-        return true
-      } catch {
-        this.app_db = emptyDb()
-        return false
-      }
+      this.app_db = readDB()
+      return true
     },
 
     save() {
-      if (!isBrowser()) return
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.app_db))
+      return writeDB(this.app_db)
     },
 
     getCostoTotalProduccion(produccionId) {
