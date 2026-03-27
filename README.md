@@ -85,6 +85,26 @@ La app contempla respaldo e intercambio de datos en tres formatos:
 
 - **JSON:** al importar, el contenido **reemplaza completamente** el `app_db` actual en `localStorage`.
 
+### Uso desde la interfaz (UI)
+
+#### Exportar respaldo
+
+1. Ir a la pestaña **Respaldo**.
+2. Elegir el formato de salida:
+   - **Exportar JSON**: descarga `app_db-YYYY-MM-DD.json`.
+   - **Exportar Excel**: descarga `app_db-YYYY-MM-DD.xls` (XML compatible con Excel).
+   - **Exportar SQL**: descarga `app_db-YYYY-MM-DD.sql`.
+3. Guardar el archivo en una ubicación segura (ejemplo: carpeta de respaldos en la nube o disco externo).
+
+#### Importar respaldo JSON
+
+1. Ir a la pestaña **Respaldo**.
+2. Hacer clic en **Importar JSON**.
+3. Seleccionar un archivo `.json` válido exportado por la app.
+4. Confirmar el mensaje: **“Esta acción reemplaza completamente app_db”**.
+5. Esperar la notificación de éxito; la app recarga el estado automáticamente después de importar.
+
+
 ## Decisiones técnicas y límites
 
 1. **Sin backend:** no hay API ni base de datos remota.
