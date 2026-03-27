@@ -29,10 +29,59 @@ const normalizeDate = (value) => {
   return parsed.toISOString().slice(0, 10)
 }
 
+const normalizePayloadByTable = (table, payload = {}) => {
+  const normalized = { ...payload }
+
+  if ('fecha' in normalized) {
+    normalized.fecha = normalizeDate(normalized.fecha)
+  }
+
+  if (table === 'productos' || table === 'materias_primas') {
+    normalized.nombre = (normalized.nombre ?? '').toString().trim()
+    normalized.costo_unitario = toNumber(normalized.costo_unitario)
+  }
+
+  if (table === 'producciones') {
+    normalized.producto_id = normalized.producto_id || ''
+    normalized.cantidad = toNumber(normalized.cantidad)
+    normalized.fecha = normalizeDate(normalized.fecha)
+  }
+
+  if (table === 'produccion_materia_prima') {
+    normalized.produccion_id = normalized.produccion_id || ''
+    normalized.materia_prima_id = normalized.materia_prima_id || ''
+    normalized.cantidad = toNumber(normalized.cantidad)
+  }
+
+  if (table === 'gastos') {
+    normalized.descripcion = (normalized.descripcion ?? '').toString().trim()
+    normalized.total = toNumber(normalized.total)
+    normalized.fecha = normalizeDate(normalized.fecha)
+  }
+
+  if (table === 'ventas_diarias') {
+    normalized.produccion_id = normalized.produccion_id || ''
+    normalized.cantidad = toNumber(normalized.cantidad)
+    normalized.total = toNumber(normalized.total)
+    normalized.fecha = normalizeDate(normalized.fecha)
+  }
+
+  return normalized
+}
+
 export const useAppStore = defineStore('appStore', {
   state: () => ({
     app_db: emptyDb(),
   }),
+
+  getters: {
+    productos: (state) => state.app_db.productos,
+    materiasPrimas: (state) => state.app_db.materias_primas,
+    producciones: (state) => state.app_db.producciones,
+    asociaciones: (state) => state.app_db.produccion_materia_prima,
+    gastos: (state) => state.app_db.gastos,
+    ventas: (state) => state.app_db.ventas_diarias,
+  },
 
   actions: {
     init() {
@@ -47,6 +96,58 @@ export const useAppStore = defineStore('appStore', {
 
     save() {
       return writeDB(this.app_db)
+    },
+
+    getNextId(table) {
+      const ids = (this.app_db[table] ?? []).map((item) => toNumber(item.id))
+      return Math.max(0, ...ids) + 1
+    },
+
+    createRecord(table, payload) {
+      const next = {
+        id: this.getNextId(table),
+        ...normalizePayloadByTable(table, payload),
+      }
+
+      this.app_db[table].push(next)
+      this.save()
+      return next
+    },
+
+    updateRecord(table, id, payload) {
+      const index = this.app_db[table].findIndex((item) => String(item.id) === String(id))
+      if (index < 0) return false
+
+      this.app_db[table][index] = {
+        ...this.app_db[table][index],
+        ...normalizePayloadByTable(table, payload),
+      }
+
+      this.save()
+      return true
+    },
+
+    deleteRecord(table, id) {
+      const filtered = this.app_db[table].filter((item) => String(item.id) !== String(id))
+      this.app_db[table] = filtered
+
+      if (table === 'producciones') {
+        this.app_db.produccion_materia_prima = this.app_db.produccion_materia_prima.filter(
+          (item) => String(item.produccion_id) !== String(id),
+        )
+        this.app_db.ventas_diarias = this.app_db.ventas_diarias.filter(
+          (item) => String(item.produccion_id) !== String(id),
+        )
+      }
+
+      if (table === 'materias_primas') {
+        this.app_db.produccion_materia_prima = this.app_db.produccion_materia_prima.filter(
+          (item) => String(item.materia_prima_id) !== String(id),
+        )
+      }
+
+      this.save()
+      return true
     },
 
     getCostoTotalProduccion(produccionId) {
