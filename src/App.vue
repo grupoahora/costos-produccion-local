@@ -6,6 +6,7 @@ import ProductosView from './views/ProductosView.vue'
 import ProduccionView from './views/ProduccionView.vue'
 import VentasView from './views/VentasView.vue'
 import GastosView from './views/GastosView.vue'
+import RespaldoView from './views/RespaldoView.vue'
 
 const store = useAppStore()
 
@@ -15,6 +16,7 @@ const tabs = [
   { key: 'produccion', label: 'Producción', component: ProduccionView },
   { key: 'ventas', label: 'Ventas diarias', component: VentasView },
   { key: 'gastos', label: 'Gastos', component: GastosView },
+  { key: 'respaldo', label: 'Respaldo', component: RespaldoView },
 ]
 
 const activeTab = ref('dashboard')
