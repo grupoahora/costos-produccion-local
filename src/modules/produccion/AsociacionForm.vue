@@ -25,7 +25,7 @@ const fields = computed(() => [
     required: true,
     options: props.materiasPrimas.map((mp) => ({ value: mp.id, label: mp.nombre })),
   },
-  { key: 'cantidad', label: 'Cantidad utilizada', type: 'number', step: '0.01', required: true },
+  { key: 'cantidad', label: 'Cantidad utilizada', type: 'number', step: '0.001', required: true },
 ])
 </script>
 

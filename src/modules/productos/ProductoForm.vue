@@ -6,7 +6,7 @@ const emit = defineEmits(['submit', 'cancel'])
 
 const fields = [
   { key: 'nombre', label: 'Nombre', required: true },
-  { key: 'costo_unitario', label: 'Costo unitario', type: 'number', step: '0.01', required: true },
+  { key: 'costo_unitario', label: 'Costo unitario', type: 'number', step: '0.001', required: true },
 ]
 </script>
 

@@ -39,7 +39,7 @@ const saveMateria = (payload) => {
     </div>
 
     <div class="split">
-      <ProductoForm :model-value="materiaEdicion" @submit="saveMateria" @cancel="materiaEdicion = {}" />
+      <ProductoForm style="height:auto;" :model-value="materiaEdicion" @submit="saveMateria" @cancel="materiaEdicion = {}" />
       <ProductoList
         title="Materias primas"
         :rows="materiasPrimas"
