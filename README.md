@@ -111,3 +111,75 @@ La app contempla respaldo e intercambio de datos en tres formatos:
 2. **Persistencia local:** los datos viven en `localStorage` del navegador y del dispositivo actual.
 3. **Alcance local:** la información no se sincroniza automáticamente entre equipos/usuarios.
 4. **Respaldo recomendado:** exportar JSON de forma periódica para evitar pérdida de datos ante limpieza del navegador, cambio de dispositivo o fallas locales.
+
+## Secuencia exacta para generar APK Android (Capacitor)
+
+> Ejecutar desde la raíz del proyecto (`/workspace/costos-produccion-local` en este entorno).
+
+1. Instalar dependencias de Capacitor:
+
+```bash
+npm i @capacitor/core @capacitor/cli
+npm i @capacitor/android
+```
+
+2. Inicializar Capacitor (solo primera vez):
+
+```bash
+npx cap init "Costos Producción" "com.tuempresa.costosproduccion"
+```
+
+3. Verificar `webDir` en `capacitor.config.ts`:
+
+```ts
+webDir: 'dist'
+```
+
+4. Generar build web:
+
+```bash
+npm run build
+```
+
+5. Agregar plataforma Android (solo primera vez):
+
+```bash
+npx cap add android
+```
+
+6. Copiar/sincronizar assets web al proyecto Android:
+
+```bash
+npx cap copy android
+```
+
+7. Abrir Android Studio:
+
+```bash
+npx cap open android
+```
+
+8. En Android Studio, generar APK:
+
+- Ir a **Build > Generate Signed Bundle / APK > APK**.
+- Seleccionar **release** para distribución o **debug** para pruebas internas.
+
+9. Ruta esperada del APK final:
+
+- Release: `android/app/build/outputs/apk/release/app-release.apk`
+- Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
+
+### Comandos de actualización después de cambios en la web
+
+Cada vez que modifiques frontend:
+
+```bash
+npm run build
+npx cap copy android
+```
+
+Si cambias plugins/configuración nativa, usar:
+
+```bash
+npx cap sync android
+```
