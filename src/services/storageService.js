@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'app_db'
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const REQUIRED_TABLES = [
   'productos',
@@ -8,6 +8,9 @@ export const REQUIRED_TABLES = [
   'produccion_materia_prima',
   'gastos',
   'ventas_diarias',
+  'inventario_movimientos',
+  'recetas',
+  'receta_detalles',
 ]
 
 export const createBaseDB = () => ({
@@ -18,6 +21,9 @@ export const createBaseDB = () => ({
   produccion_materia_prima: [],
   gastos: [],
   ventas_diarias: [],
+  inventario_movimientos: [],
+  recetas: [],
+  receta_detalles: [],
 })
 
 const isBrowser = () => typeof window !== 'undefined' && !!window.localStorage
@@ -39,7 +45,7 @@ const ensureTableShape = (db) => {
 
   const parsedVersion = Number(normalized.schemaVersion)
   normalized.schemaVersion = Number.isInteger(parsedVersion) && parsedVersion > 0
-    ? parsedVersion
+    ? Math.max(parsedVersion, SCHEMA_VERSION)
     : SCHEMA_VERSION
 
   return normalized

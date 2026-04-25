@@ -26,7 +26,7 @@ const saveMateria = (payload) => {
 
 <template>
   <section class="stack">
-    <h2>Gestión de productos y materias primas</h2>
+    <h2>Gestion de productos y materias primas</h2>
 
     <div class="split">
       <ProductoForm :model-value="productoEdicion" @submit="saveProducto" @cancel="productoEdicion = {}" />
@@ -39,7 +39,7 @@ const saveMateria = (payload) => {
     </div>
 
     <div class="split">
-      <ProductoForm style="height:auto;" :model-value="materiaEdicion" @submit="saveMateria" @cancel="materiaEdicion = {}" />
+      <ProductoForm :model-value="materiaEdicion" @submit="saveMateria" @cancel="materiaEdicion = {}" />
       <ProductoList
         title="Materias primas"
         :rows="materiasPrimas"

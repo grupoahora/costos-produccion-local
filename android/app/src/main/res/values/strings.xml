@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Costos Producción</string>
+    <string name="title_activity_main">Costos Producción</string>
+    <string name="package_name">com.tuempresa.costosproduccion</string>
+    <string name="custom_url_scheme">com.tuempresa.costosproduccion</string>
+</resources>
