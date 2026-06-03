@@ -8,7 +8,8 @@ const selectedProductId = ref('')
 const recipeName = ref('')
 const detailDraft = reactive({
   materia_prima_id: '',
-  cantidad: '',
+  tipo: 'principal',
+  valor: '',
 })
 const details = ref([])
 const feedback = ref('')
@@ -21,13 +22,43 @@ const materiaOptions = computed(() =>
   store.materiasPrimas.map((item) => ({ value: String(item.id), label: item.nombre })),
 )
 
+const principalDetail = computed(() => details.value.find((detalle) => detalle.es_principal) || null)
+
+const hydratedDetails = computed(() => {
+  const principalGramos = Number(principalDetail.value?.gramos_base || 0)
+
+  return details.value.map((detalle) => {
+    const materiaPrima = store.getMateriaPrimaById(detalle.materia_prima_id)
+    const costoUnitario = Number(materiaPrima?.costo_unitario || 0)
+    const gramosCalculados = detalle.es_principal
+      ? Number(detalle.gramos_base || 0)
+      : (principalGramos * Number(detalle.porcentaje_principal || 0)) / 100
+
+    return {
+      ...detalle,
+      materia_prima: materiaPrima?.nombre || '-',
+      gramos_calculados: gramosCalculados,
+      costo_unitario: costoUnitario,
+      costo_total: gramosCalculados * costoUnitario,
+      relacion: detalle.es_principal
+        ? `${Number(detalle.gramos_base || 0).toFixed(3)} g`
+        : `${Number(detalle.porcentaje_principal || 0).toFixed(2)}% del principal`,
+    }
+  })
+})
+
 const recetasRows = computed(() =>
   store.productos.map((producto) => {
     const receta = store.getRecipeByProduct(producto.id)
+    const principal = receta?.detalles.find((detalle) => detalle.es_principal)
+
     return {
       id: producto.id,
       producto: producto.nombre,
       receta: receta?.nombre || 'Sin receta',
+      principal: principal
+        ? `${principal.materia_prima_nombre} (${Number(principal.gramos_base || principal.cantidad_base || 0).toFixed(3)} g)`
+        : '-',
       insumos: receta?.detalles.length || 0,
       costo_estimado: receta ? `$${receta.costo_estimado.toFixed(2)}` : '$0.00',
       actualizada: receta?.fecha_actualizacion || '-',
@@ -36,18 +67,21 @@ const recetasRows = computed(() =>
 )
 
 const detailRows = computed(() =>
-  details.value.map((detalle, index) => ({
+  hydratedDetails.value.map((detalle, index) => ({
     id: index + 1,
-    materia_prima: store.getMateriaPrimaById(detalle.materia_prima_id)?.nombre || '-',
-    cantidad: Number(detalle.cantidad).toFixed(3),
-    costo_unitario: `$${Number(detalle.costo_unitario || 0).toFixed(2)}`,
-    costo_total: `$${Number(detalle.costo_total || 0).toFixed(2)}`,
+    materia_prima: detalle.materia_prima,
+    tipo: detalle.es_principal ? 'Principal' : 'Porcentaje',
+    relacion: detalle.relacion,
+    gramos_calculados: `${detalle.gramos_calculados.toFixed(3)} g`,
+    costo_unitario: `$${detalle.costo_unitario.toFixed(2)}`,
+    costo_total: `$${detalle.costo_total.toFixed(2)}`,
   })),
 )
 
 const recipeColumns = [
   { key: 'producto', label: 'Producto' },
   { key: 'receta', label: 'Receta activa' },
+  { key: 'principal', label: 'Ingrediente principal' },
   { key: 'insumos', label: 'Insumos' },
   { key: 'costo_estimado', label: 'Costo estimado' },
   { key: 'actualizada', label: 'Actualizada' },
@@ -55,14 +89,17 @@ const recipeColumns = [
 
 const detailColumns = [
   { key: 'materia_prima', label: 'Materia prima' },
-  { key: 'cantidad', label: 'Cantidad por unidad' },
+  { key: 'tipo', label: 'Tipo' },
+  { key: 'relacion', label: 'Relacion' },
+  { key: 'gramos_calculados', label: 'Gramos calculados' },
   { key: 'costo_unitario', label: 'Costo unitario' },
   { key: 'costo_total', label: 'Costo total' },
 ]
 
 const resetDraft = () => {
   detailDraft.materia_prima_id = ''
-  detailDraft.cantidad = ''
+  detailDraft.tipo = principalDetail.value ? 'porcentaje' : 'principal'
+  detailDraft.valor = ''
 }
 
 const loadRecipe = (productId) => {
@@ -71,9 +108,9 @@ const loadRecipe = (productId) => {
   recipeName.value = recipe?.nombre || ''
   details.value = recipe?.detalles.map((detalle) => ({
     materia_prima_id: String(detalle.materia_prima_id),
-    cantidad: Number(detalle.cantidad),
-    costo_unitario: Number(detalle.costo_unitario),
-    costo_total: Number(detalle.costo_total),
+    es_principal: detalle.es_principal === true,
+    gramos_base: Number(detalle.gramos_base || detalle.cantidad_base || 0),
+    porcentaje_principal: detalle.es_principal ? 0 : Number(detalle.porcentaje_principal || 0),
   })) || []
   feedback.value = ''
   resetDraft()
@@ -85,6 +122,7 @@ watch(
     if (!productId) {
       recipeName.value = ''
       details.value = []
+      resetDraft()
       return
     }
     loadRecipe(productId)
@@ -93,10 +131,16 @@ watch(
 
 const addDetail = () => {
   const materiaPrima = store.getMateriaPrimaById(detailDraft.materia_prima_id)
-  const cantidad = Number(detailDraft.cantidad)
+  const valor = Number(detailDraft.valor)
+  const isPrincipal = detailDraft.tipo === 'principal'
 
-  if (!materiaPrima || !(cantidad > 0)) {
-    feedback.value = 'Selecciona una materia prima y una cantidad valida.'
+  if (!materiaPrima || !(valor > 0)) {
+    feedback.value = 'Selecciona una materia prima y un valor valido.'
+    return
+  }
+
+  if (isPrincipal && principalDetail.value && String(principalDetail.value.materia_prima_id) !== String(detailDraft.materia_prima_id)) {
+    feedback.value = 'Solo puede existir un ingrediente principal. Quita o reemplaza el actual.'
     return
   }
 
@@ -106,9 +150,9 @@ const addDetail = () => {
 
   const nextDetail = {
     materia_prima_id: String(detailDraft.materia_prima_id),
-    cantidad,
-    costo_unitario: Number(materiaPrima.costo_unitario || 0),
-    costo_total: cantidad * Number(materiaPrima.costo_unitario || 0),
+    es_principal: isPrincipal,
+    gramos_base: isPrincipal ? valor : 0,
+    porcentaje_principal: isPrincipal ? 0 : valor,
   }
 
   if (existingIndex >= 0) {
@@ -117,12 +161,23 @@ const addDetail = () => {
     details.value.push(nextDetail)
   }
 
+  if (isPrincipal) {
+    details.value = details.value.map((detalle) => ({
+      ...detalle,
+      es_principal: String(detalle.materia_prima_id) === String(nextDetail.materia_prima_id),
+      gramos_base: String(detalle.materia_prima_id) === String(nextDetail.materia_prima_id)
+        ? nextDetail.gramos_base
+        : 0,
+    }))
+  }
+
   feedback.value = ''
   resetDraft()
 }
 
 const removeDetail = (index) => {
   details.value.splice(index, 1)
+  resetDraft()
 }
 
 const saveRecipe = () => {
@@ -146,7 +201,7 @@ const deleteRecipe = () => {
 }
 
 const costoTotal = computed(() =>
-  details.value.reduce((total, item) => total + Number(item.costo_total || 0), 0),
+  hydratedDetails.value.reduce((total, item) => total + Number(item.costo_total || 0), 0),
 )
 </script>
 
@@ -185,8 +240,16 @@ const costoTotal = computed(() =>
           </label>
 
           <label>
-            <span>Cantidad por unidad</span>
-            <input v-model="detailDraft.cantidad" type="number" step="0.001" min="0" />
+            <span>Tipo</span>
+            <select v-model="detailDraft.tipo">
+              <option value="principal">Ingrediente principal</option>
+              <option value="porcentaje">Porcentaje sobre principal</option>
+            </select>
+          </label>
+
+          <label>
+            <span>{{ detailDraft.tipo === 'principal' ? 'Gramos del principal' : 'Porcentaje del principal' }}</span>
+            <input v-model="detailDraft.valor" type="number" step="0.001" min="0" />
           </label>
 
           <button type="button" class="primary-action" @click="addDetail">Agregar insumo</button>
@@ -194,20 +257,28 @@ const costoTotal = computed(() =>
 
         <div class="panel nested-panel">
           <div class="section-heading">
-            <h4>Detalle</h4>
+            <h4>Detalle formulado</h4>
             <strong>${{ costoTotal.toFixed(2) }}</strong>
           </div>
 
-          <div v-if="!details.length" class="empty-state">Agrega al menos un insumo a la receta.</div>
+          <div v-if="principalDetail" class="summary-strip">
+            <span>Principal: {{ store.getMateriaPrimaById(principalDetail.materia_prima_id)?.nombre || '-' }}</span>
+            <strong>{{ Number(principalDetail.gramos_base || 0).toFixed(3) }} g</strong>
+          </div>
+
+          <div v-if="!hydratedDetails.length" class="empty-state">
+            Define un ingrediente principal en gramos y luego agrega los demas como porcentaje.
+          </div>
 
           <div v-else class="detail-list">
-            <article v-for="(detalle, index) in details" :key="`${detalle.materia_prima_id}-${index}`" class="detail-item">
+            <article v-for="(detalle, index) in hydratedDetails" :key="`${detalle.materia_prima_id}-${index}`" class="detail-item">
               <div>
-                <strong>{{ store.getMateriaPrimaById(detalle.materia_prima_id)?.nombre || '-' }}</strong>
-                <p>{{ Number(detalle.cantidad).toFixed(3) }} x ${{ Number(detalle.costo_unitario).toFixed(2) }}</p>
+                <strong>{{ detalle.materia_prima }}</strong>
+                <p>{{ detalle.es_principal ? 'Principal' : `${Number(detalle.porcentaje_principal || 0).toFixed(2)}% del principal` }}</p>
+                <p>{{ detalle.gramos_calculados.toFixed(3) }} g x ${{ detalle.costo_unitario.toFixed(2) }}</p>
               </div>
               <div class="row actions">
-                <strong>${{ Number(detalle.costo_total).toFixed(2) }}</strong>
+                <strong>${{ detalle.costo_total.toFixed(2) }}</strong>
                 <button type="button" class="danger" @click="removeDetail(index)">Quitar</button>
               </div>
             </article>

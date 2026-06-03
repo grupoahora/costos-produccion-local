@@ -9,6 +9,7 @@ import ProduccionView from './views/ProduccionView.vue'
 import VentasView from './views/VentasView.vue'
 import GastosView from './views/GastosView.vue'
 import RespaldoView from './views/RespaldoView.vue'
+import McpChatbot from './components/McpChatbot.vue'
 
 const store = useAppStore()
 
@@ -57,5 +58,7 @@ onMounted(() => {
     <main>
       <component :is="activeComponent" />
     </main>
+
+    <McpChatbot :active-tab="activeTab" @navigate="activeTab = $event" />
   </div>
 </template>

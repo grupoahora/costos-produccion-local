@@ -7,9 +7,18 @@ import ProductoList from '../modules/productos/ProductoList.vue'
 const store = useAppStore()
 const productoEdicion = ref({})
 const materiaEdicion = ref({})
-
-const productos = computed(() => store.productos)
-const materiasPrimas = computed(() => store.materiasPrimas)
+const productosRows = computed(() =>
+  store.productos.map((item) => ({
+    ...item,
+    precio_venta_estimado: `$${Number(item.precio_venta_estimado ?? item.costo_unitario ?? 0).toFixed(2)}`,
+  })),
+)
+const materiasRows = computed(() =>
+  store.materiasPrimas.map((item) => ({
+    ...item,
+    costo_unitario: `$${Number(item.costo_unitario || 0).toFixed(2)}`,
+  })),
+)
 
 const saveProducto = (payload) => {
   if (payload.id) store.updateRecord('productos', payload.id, payload)
@@ -29,20 +38,22 @@ const saveMateria = (payload) => {
     <h2>Gestion de productos y materias primas</h2>
 
     <div class="split">
-      <ProductoForm :model-value="productoEdicion" @submit="saveProducto" @cancel="productoEdicion = {}" />
+      <ProductoForm entity-type="producto" :model-value="productoEdicion" @submit="saveProducto" @cancel="productoEdicion = {}" />
       <ProductoList
         title="Productos"
-        :rows="productos"
+        entity-type="producto"
+        :rows="productosRows"
         @edit="productoEdicion = { ...$event }"
         @delete="store.deleteRecord('productos', $event.id)"
       />
     </div>
 
     <div class="split">
-      <ProductoForm :model-value="materiaEdicion" @submit="saveMateria" @cancel="materiaEdicion = {}" />
+      <ProductoForm entity-type="materia_prima" :model-value="materiaEdicion" @submit="saveMateria" @cancel="materiaEdicion = {}" />
       <ProductoList
         title="Materias primas"
-        :rows="materiasPrimas"
+        entity-type="materia_prima"
+        :rows="materiasRows"
         @edit="materiaEdicion = { ...$event }"
         @delete="store.deleteRecord('materias_primas', $event.id)"
       />

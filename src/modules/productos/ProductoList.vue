@@ -1,14 +1,22 @@
 <script setup>
+import { computed } from 'vue'
 import BaseTable from '../../components/BaseTable.vue'
 
-defineProps({ rows: { type: Array, default: () => [] }, title: { type: String, default: 'Listado' } })
+const props = defineProps({
+  rows: { type: Array, default: () => [] },
+  title: { type: String, default: 'Listado' },
+  entityType: { type: String, default: 'producto' },
+})
 defineEmits(['edit', 'delete'])
 
-const columns = [
+const columns = computed(() => [
   { key: 'id', label: 'ID' },
   { key: 'nombre', label: 'Nombre' },
-  { key: 'costo_unitario', label: 'Costo unitario' },
-]
+  {
+    key: props.entityType === 'producto' ? 'precio_venta_estimado' : 'costo_unitario',
+    label: props.entityType === 'producto' ? 'Precio de venta estimado' : 'Costo unitario',
+  },
+])
 </script>
 
 <template>

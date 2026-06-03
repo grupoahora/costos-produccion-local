@@ -16,7 +16,7 @@ const productRows = computed(() =>
   store.getInventorySummary('producto').map((item) => ({
     ...item,
     saldo: item.saldo.toFixed(3),
-    costo_unitario: `$${item.costo_unitario.toFixed(2)}`,
+    precio_venta_estimado: `$${Number(item.precio_venta_estimado || 0).toFixed(2)}`,
   })),
 )
 
@@ -43,7 +43,7 @@ const ventas = computed(() =>
 const inventoryColumns = [
   { key: 'nombre', label: 'Producto' },
   { key: 'saldo', label: 'Stock disponible' },
-  { key: 'costo_unitario', label: 'Costo promedio' },
+  { key: 'precio_venta_estimado', label: 'Precio de venta estimado' },
 ]
 
 const saleColumns = [

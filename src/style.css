@@ -304,6 +304,130 @@ td {
   display: inline-block;
 }
 
+.mcp-chatbot {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 30;
+  display: grid;
+  justify-items: end;
+  gap: 0.75rem;
+  max-width: min(390px, calc(100vw - 2rem));
+}
+
+.mcp-chatbot__launcher {
+  border: 0;
+  background: linear-gradient(135deg, #0f172a, #0f766e);
+  color: #fff;
+  box-shadow: 0 18px 35px rgba(15, 23, 42, 0.22);
+  display: inline-flex;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.mcp-chatbot__launcher span {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+}
+
+.mcp-chatbot__panel {
+  width: min(390px, calc(100vw - 2rem));
+  max-height: min(680px, calc(100vh - 6rem));
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(220px, 1fr) auto auto;
+}
+
+.mcp-chatbot__header {
+  background:
+    radial-gradient(circle at 15% 20%, rgba(45, 212, 191, 0.35), transparent 28%),
+    linear-gradient(135deg, #0f172a, #164e63);
+  color: #fff;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: start;
+}
+
+.mcp-chatbot__header p {
+  color: #bae6fd;
+  font-size: 0.8rem;
+  margin-bottom: 0.2rem;
+}
+
+.mcp-chatbot__header small {
+  color: #ccfbf1;
+}
+
+.mcp-chatbot__messages {
+  padding: 1rem;
+  overflow-y: auto;
+  background: #f8fafc;
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+}
+
+.mcp-message {
+  border-radius: 0.85rem;
+  padding: 0.75rem;
+  display: grid;
+  gap: 0.35rem;
+  white-space: pre-line;
+  line-height: 1.4;
+}
+
+.mcp-message small {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.mcp-message--assistant {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  justify-self: start;
+}
+
+.mcp-message--user {
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  justify-self: end;
+}
+
+.mcp-chatbot__suggestions,
+.mcp-chatbot__form {
+  padding: 0.75rem;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+}
+
+.mcp-chatbot__suggestions {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+}
+
+.mcp-chatbot__suggestions button {
+  white-space: nowrap;
+  background: #ecfeff;
+  border-color: #a5f3fc;
+  color: #155e75;
+}
+
+.mcp-chatbot__form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
 @media (max-width: 720px) {
   #app {
     padding: 0.75rem;
@@ -316,5 +440,16 @@ td {
   .history-item {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .mcp-chatbot {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .mcp-chatbot__panel {
+    width: calc(100vw - 1.5rem);
+    max-height: calc(100vh - 5rem);
   }
 }

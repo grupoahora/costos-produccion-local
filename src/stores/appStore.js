@@ -47,7 +47,14 @@ const normalizePayloadByTable = (table, payload = {}) => {
     normalized.fecha = normalizeDate(normalized.fecha)
   }
 
-  if (table === 'productos' || table === 'materias_primas') {
+  if (table === 'productos') {
+    normalized.nombre = (normalized.nombre ?? '').toString().trim()
+    normalized.precio_venta_estimado = toNumber(
+      normalized.precio_venta_estimado ?? normalized.costo_unitario,
+    )
+  }
+
+  if (table === 'materias_primas') {
     normalized.nombre = (normalized.nombre ?? '').toString().trim()
     normalized.costo_unitario = toNumber(normalized.costo_unitario)
   }
@@ -107,7 +114,13 @@ const normalizePayloadByTable = (table, payload = {}) => {
   if (table === 'receta_detalles') {
     normalized.receta_id = normalized.receta_id || ''
     normalized.materia_prima_id = normalized.materia_prima_id || ''
-    normalized.cantidad = toNumber(normalized.cantidad)
+    normalized.es_principal = normalized.es_principal === true || normalized.es_principal === 'true'
+    normalized.gramos_base = toNumber(
+      normalized.gramos_base ?? (normalized.es_principal ? normalized.cantidad : 0),
+    )
+    normalized.porcentaje_principal = toNumber(
+      normalized.porcentaje_principal ?? (!normalized.es_principal ? normalized.cantidad : 0),
+    )
   }
 
   return normalized
@@ -115,6 +128,9 @@ const normalizePayloadByTable = (table, payload = {}) => {
 
 const sortByDateAsc = (items) =>
   [...items].sort((a, b) => String(a.fecha ?? '').localeCompare(String(b.fecha ?? '')))
+
+const getProductSalePrice = (producto) =>
+  toNumber(producto?.precio_venta_estimado ?? producto?.costo_unitario)
 
 export const useAppStore = defineStore('appStore', {
   state: () => ({
@@ -267,20 +283,39 @@ export const useAppStore = defineStore('appStore', {
       )
       if (!receta) return null
 
-      const detalles = this.app_db.receta_detalles
-        .filter((item) => String(item.receta_id) === String(receta.id))
-        .map((detalle) => {
-          const materiaPrima = this.getMateriaPrimaById(detalle.materia_prima_id)
-          const costoUnitario = toNumber(materiaPrima?.costo_unitario)
-          const cantidad = toNumber(detalle.cantidad)
+      const rawDetalles = this.app_db.receta_detalles.filter(
+        (item) => String(item.receta_id) === String(receta.id),
+      )
+      const principalRaw = rawDetalles.find((item) => item.es_principal === true)
+      const principalGramos = toNumber(principalRaw?.gramos_base ?? principalRaw?.cantidad)
 
-          return {
-            ...detalle,
-            materia_prima_nombre: materiaPrima?.nombre || '-',
-            costo_unitario: costoUnitario,
-            costo_total: cantidad * costoUnitario,
-          }
-        })
+      const detalles = rawDetalles.map((detalle, index) => {
+        const materiaPrima = this.getMateriaPrimaById(detalle.materia_prima_id)
+        const costoUnitario = toNumber(materiaPrima?.costo_unitario)
+        const isPrincipal = detalle.es_principal === true || (!principalRaw && index === 0)
+        const gramosBase = isPrincipal
+          ? toNumber(detalle.gramos_base ?? detalle.cantidad)
+          : principalGramos > 0
+            ? (principalGramos * toNumber(detalle.porcentaje_principal ?? detalle.cantidad)) / 100
+            : toNumber(detalle.cantidad)
+        const porcentajePrincipal = isPrincipal
+          ? 100
+          : toNumber(detalle.porcentaje_principal ?? detalle.cantidad)
+
+        return {
+          ...detalle,
+          es_principal: isPrincipal,
+          gramos_base: isPrincipal ? gramosBase : 0,
+          porcentaje_principal: isPrincipal ? 100 : porcentajePrincipal,
+          cantidad_base: gramosBase,
+          relacion_label: isPrincipal
+            ? `${gramosBase.toFixed(3)} g`
+            : `${porcentajePrincipal.toFixed(2)}% del principal`,
+          materia_prima_nombre: materiaPrima?.nombre || '-',
+          costo_unitario: costoUnitario,
+          costo_total: gramosBase * costoUnitario,
+        }
+      })
 
       const costoEstimado = detalles.reduce((total, item) => total + item.costo_total, 0)
 
@@ -296,9 +331,15 @@ export const useAppStore = defineStore('appStore', {
       const trimmedDetails = (detalles || [])
         .map((detalle) => ({
           materia_prima_id: detalle.materia_prima_id,
-          cantidad: toNumber(detalle.cantidad),
+          es_principal: detalle.es_principal === true,
+          gramos_base: toNumber(detalle.gramos_base),
+          porcentaje_principal: toNumber(detalle.porcentaje_principal),
         }))
-        .filter((detalle) => detalle.materia_prima_id && detalle.cantidad > 0)
+        .filter((detalle) =>
+          detalle.materia_prima_id &&
+          ((detalle.es_principal && detalle.gramos_base > 0) ||
+            (!detalle.es_principal && detalle.porcentaje_principal > 0)),
+        )
 
       if (!productId) {
         return { ok: false, message: 'Debe seleccionar un producto.' }
@@ -306,6 +347,11 @@ export const useAppStore = defineStore('appStore', {
 
       if (!trimmedDetails.length) {
         return { ok: false, message: 'La receta debe tener al menos un insumo.' }
+      }
+
+      const principales = trimmedDetails.filter((detalle) => detalle.es_principal)
+      if (principales.length !== 1) {
+        return { ok: false, message: 'La receta debe tener exactamente un ingrediente principal en gramos.' }
       }
 
       const existing = this.getRecipeByProduct(productId)
@@ -367,14 +413,16 @@ export const useAppStore = defineStore('appStore', {
 
       const cantidad = toNumber(cantidadProducida)
       const detalles = recipe.detalles.map((detalle) => {
-        const cantidadRequerida = toNumber(detalle.cantidad) * cantidad
+        const cantidadRequerida = toNumber(detalle.cantidad_base) * cantidad
         const stockActual = this.getStockActual('materia_prima', detalle.materia_prima_id)
         const costoUnitario = toNumber(detalle.costo_unitario)
 
         return {
           materia_prima_id: detalle.materia_prima_id,
           materia_prima_nombre: detalle.materia_prima_nombre,
-          cantidad_por_unidad: toNumber(detalle.cantidad),
+          es_principal: detalle.es_principal,
+          cantidad_por_unidad: toNumber(detalle.cantidad_base),
+          relacion_label: detalle.relacion_label,
           cantidad_requerida: cantidadRequerida,
           stock_actual: stockActual,
           stock_suficiente: stockActual >= cantidadRequerida,
@@ -434,6 +482,7 @@ export const useAppStore = defineStore('appStore', {
           item_tipo: itemTipo,
           nombre: item.nombre,
           saldo,
+          precio_venta_estimado: itemTipo === 'producto' ? getProductSalePrice(item) : 0,
           costo_unitario: costoUnitario,
           valor_inventario: saldo * costoUnitario,
           estado: saldo <= 0 ? 'critico' : saldo <= LOW_STOCK_THRESHOLD ? 'bajo' : 'ok',

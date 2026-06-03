@@ -21,6 +21,7 @@ const requirementsRows = computed(() => {
   return requirements.value.detalles.map((item) => ({
     id: item.materia_prima_id,
     materia_prima: item.materia_prima_nombre,
+    relacion: item.relacion_label,
     requerido: item.cantidad_requerida.toFixed(3),
     stock_actual: item.stock_actual.toFixed(3),
     costo_unitario: `$${item.costo_unitario.toFixed(2)}`,
@@ -40,6 +41,7 @@ const producciones = computed(() =>
 
 const columnsRequirements = [
   { key: 'materia_prima', label: 'Materia prima' },
+  { key: 'relacion', label: 'Formula' },
   { key: 'requerido', label: 'Requerido' },
   { key: 'stock_actual', label: 'Stock actual' },
   { key: 'costo_unitario', label: 'Costo unitario' },
