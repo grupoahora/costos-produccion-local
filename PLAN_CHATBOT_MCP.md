@@ -87,8 +87,17 @@ Estas acciones conviene agregarlas con cuidado porque algunas pueden reemplazar 
 - Puede consultar resumen del dashboard.
 - Puede consultar inventario general o por item.
 - Puede crear productos.
+- Puede editar productos.
+- Puede eliminar productos con confirmacion.
 - Puede crear materias primas.
+- Puede editar materias primas.
+- Puede eliminar materias primas con confirmacion.
 - Puede registrar gastos.
+- Puede editar gastos.
+- Puede eliminar gastos con confirmacion.
+- Puede registrar movimientos manuales de inventario: entrada, salida y ajuste.
 - Puede registrar ventas.
+- Puede eliminar ventas con confirmacion.
 - Puede registrar produccion.
+- Puede eliminar produccion con confirmacion.
 - Puede navegar entre secciones principales.
